@@ -1,0 +1,6 @@
+{
+    "python.pythonPath": "/home/brown5628/anaconda3/envs/ds-handbook/bin/python",
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": true,
+    "python.linting.enabled": true
+}
