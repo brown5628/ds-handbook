@@ -636,3 +636,262 @@ print(
 )
 
 # %%
+rand = np.random.RandomState(42)
+
+x = rand.randint(100, size=10)
+print(x)
+
+# %%
+[x[3], x[7], x[2]]
+
+
+# %%
+ind = [3, 7, 4]
+x[ind]
+
+# %%
+ind = np.array([[3, 7], [4, 5]])
+x[ind]
+# %%
+X = np.arange(12).reshape((3, 4))
+X
+
+# %%
+row = np.array([0, 1, 2])
+col = np.array([2, 1, 3])
+X[row, col]
+# %%
+X[row[:, np.newaxis], col]
+
+# %%
+row[:, np.newaxis] * col
+
+# %%
+X[2, [2, 0, 1]]
+
+# %%
+X[1:, [2, 0, 1]]
+
+# %%
+mask = np.array([1, 0, 1, 0], dtype=bool)
+X[row[:, np.newaxis], mask]
+
+# %%
+mean = [0, 0]
+cov = [[1, 2], [2, 5]]
+X = rand.multivariate_normal(mean, cov, 100)
+X.shape
+
+# %%
+plt.scatter(X[:, 0], X[:, 1])
+
+# %%
+indices = np.random.choice(X.shape[0], 20, replace=False)
+indices
+
+# %%
+selection = X[indices]
+selection.shape
+
+# %%
+plt.scatter(X[:, 0], X[:, 1], alpha=0.3)
+plt.scatter(selection[:, 0], selection[:, 1], facecolor="none", s=200)
+
+# %%
+x = np.arange(10)
+i = np.array([2, 1, 8, 4])
+x[i] = 99
+print(x)
+
+# %%
+x[i] -= 10
+print(x)
+
+# %%
+x = np.zeros(10)
+x[[0, 0]] = [4, 6]
+print(x)
+
+# %%
+i = [2, 3, 3, 4, 4, 4]
+x[i] += 1
+x
+
+# %%
+x = np.zeros(10)
+np.add.at(x, i, 1)
+print(x)
+
+# %%
+np.random.seed(42)
+x = np.random.randn(100)
+
+bins = np.linspace(-5, 5, 20)
+counts = np.zeros_like(bins)
+
+i = np.searchsorted(bins, x)
+
+np.add.at(counts, i, 1)
+
+# %%
+plt.plot(bins, counts, linestyle="steps")
+
+# %%
+plt.hist(x, bins, histtype="step")
+
+# %%
+
+
+def selection_sort(x):
+    for i in range(len(x)):
+        swap = i + np.argmin(x[i:])
+        (x[i], x[swap]) = (x[swap], x[i])
+    return x
+
+
+# %%
+x = np.array([2, 1, 4, 3, 5])
+selection_sort(x)
+
+# %%
+
+
+def bogosort(x):
+    while np.any(x[:-1] > x[1:]):
+        np.random.shuffle(x)
+    return x
+
+
+x = np.array([2, 1, 4, 3, 5])
+bogosort(x)
+
+# %%
+x = np.array([2, 1, 4, 3, 5])
+np.sort(x)
+
+# %%
+x.sort()
+print(x)
+
+# %%
+x = np.array([2, 1, 4, 3, 5])
+i = np.argsort(x)
+print(i)
+
+# %%
+x[i]
+
+# %%
+rand = np.random.RandomState(42)
+X = rand.randint(0, 10, (4, 6))
+print(X)
+
+# %%
+np.sort(X, axis=0)
+
+# %%
+np.sort(X, axis=1)
+
+# %%
+x = np.array([7, 2, 3, 1, 6, 5, 4])
+np.partition(x, 3)
+
+# %%
+np.partition(X, 2, axis=1)
+
+# %%
+X = rand.rand(10, 2)
+
+# %%
+plt.scatter(X[:, 0], X[:, 1], s=100)
+
+# %%
+dist_sq = np.sum((X[:, np.newaxis, :] - X[np.newaxis, :, :]) ** 2, axis=-1)
+
+# %%
+differences = X[:, np.newaxis, :] - X[np.newaxis, :, :]
+differences.shape
+
+# %%
+sq_differences = differences ** 2
+sq_differences.shape
+
+# %%
+dist_sq = sq_differences.sum(-1)
+dist_sq.shape
+
+# %%
+dist_sq.diagonal()
+
+# %%
+nearest = np.argsort(dist_sq, axis=1)
+print(nearest)
+
+# %%
+K = 2
+nearest_partition = np.argpartition(dist_sq, K + 1, axis=1)
+
+# %%
+plt.scatter(X[:, 0], X[:, 1], s=100)
+
+K = 2
+
+for i in range(X.shape[0]):
+    for j in nearest_partition[i, : K + 1]:
+        plt.plot(*zip(X[j], X[i]), color="black")
+
+# %%
+name = ["Alice", "Bob", "Cathy", "Doug"]
+age = [25, 45, 37, 19]
+weight = [55.0, 85.5, 68.0, 61.5]
+
+# %%
+x = np.zeros(4, dtype=int)
+
+# %%
+data = np.zeros(
+    4, dtype={"names": ("name", "age", "weight"), "formats": ("U10", "i4", "f8")}
+)
+print(data.dtype)
+
+# %%
+data["name"] = name
+data["age"] = age
+data["weight"] = weight
+print(data)
+
+# %%
+data["name"]
+data[0]
+data[-1]["name"]
+
+# %%
+data[data["age"] < 30]["name"]
+
+# %%
+np.dtype({"names": ("name", "age", "weight"), "formats": ("U10", "i4", "f8")})
+
+# %%
+np.dtype(
+    {"names": ("name", "age", "weight"), "formats": ((np.str_, 10), int, np.float32)}
+)
+
+# %%
+np.dtype([("name", "S10"), ("age", "i4"), ("weight", "f8")])
+
+
+# %%
+np.dtype("S10,i4,f8")
+
+# %%
+tp = np.dtype([("id", "i8"), ("mat", "f8", (3, 3))])
+X = np.zeros(1, dtype=tp)
+print(X[0])
+print(X["mat"][0])
+
+# %%
+data["age"]
+
+# %%
+data_rec = data.view(np.recarray)
+data_rec.age
