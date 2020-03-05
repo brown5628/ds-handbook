@@ -349,3 +349,181 @@ vals2.sum(), vals2.min(), vals2.max()
 np.nansum(vals2), np.nanmin(vals2), np.nanmax(vals2)
 
 # %%
+pd.Series([1, np.nan, 2, None])
+
+# %%
+x = pd.Series(range(2), dtype=int)
+x
+
+# %%
+x[0] = None
+x
+# %%
+data = pd.Series([1, np.nan, "hello", None])
+
+# %%
+data.isnull()
+
+# %%
+data[data.notnull()]
+
+# %%
+data.dropna()
+
+# %%
+df = pd.DataFrame([[1, np.nan, 2], [2, 3, 5], [np.nan, 4, 6]])
+df
+
+# %%
+df.dropna()
+
+# %%
+df.dropna(axis="columns")
+
+# %%
+df[3] = np.nan
+df
+
+# %%
+df.dropna(axis="columns", how="all")
+
+# %%
+df.dropna(axis="rows", thresh=3)
+
+# %%
+data = pd.Series([1, np.nan, 2, None, 3], index=list("abcde"))
+
+# %%
+data.fillna(0)
+
+# %%
+data.fillna(methods="ffill")
+
+# %%
+data.fillna(method="bfill")
+
+# %%
+df
+
+# %%
+df.fillna(method="ffill", axis=1)
+
+# %%
+index = [
+    ("California", 2000),
+    ("California", 2010),
+    ("New York", 2000),
+    ("New York", 2010),
+    ("Texas", 2000),
+    ("Texas", 2010),
+]
+populations = [33871648, 37253956, 18976457, 19378102, 20851820, 25145561]
+pop = pd.Series(populations, index=index)
+pop
+
+# %%
+pop[("California", 2010):("Texas", 2000)]
+
+# %%
+pop[[i for i in pop.index if i[1] == 2010]]
+
+# %%
+index = pd.MultiIndex.from_tuples(index)
+index
+
+# %%
+pop = pop.reindex(index)
+pop
+
+# %%
+pop[:, 2010]
+
+# %%
+pop_df = pop.unstack()
+pop_df
+# %%
+pop_df.stack()
+
+# %%
+pop_df = pd.DataFrame(
+    {"total": pop, "under18": [9267089, 92840494, 4687374, 4318033, 5906301, 6879014]}
+)
+pop_df
+# %%
+f_u18 = pop_df["under18"] / pop_df["total"]
+f_u18.unstack()
+
+# %%
+df = pd.DataFrame(
+    np.random.rand(4, 2),
+    index=[["a", "a", "b", "b"], [1, 2, 1, 2]],
+    columns=["data1", "data2"],
+)
+df
+
+# %%
+data = {
+    ("California", 2000): 33871648,
+    ("California", 2010): 37253956,
+    ("Texas", 2000): 20851820,
+    ("Texas", 2010): 25145561,
+    ("New York", 2000): 18976457,
+    ("New York", 2010): 19378102,
+}
+pd.Series(data)
+
+# %%
+pd.MultiIndex.from_arrays([["a", "a", "b", "b"], [1, 2, 1, 2]])
+
+# %%
+pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1), ("b", 2)])
+
+# %%
+pd.MultiIndex.from_product([["a", "b"], [1, 2]])
+
+# %%
+# pd.MultiIndex(levels=[['a','b'], [1,2]], labels=[[0,0,1,1], [0,1,0,1]])
+
+# %%
+pop.index.names = ["state", "year"]
+pop
+
+# %%
+index = pd.MultiIndex.from_product([[2013, 2014], [1, 2]], names=["year", "visit"])
+columns = pd.MultiIndex.from_product(
+    [["Bob", "Guido", "Sue"], ["HR", "Temp"]], names=["subject", "type"]
+)
+
+data = np.round(np.random.rand(4, 6), 1)
+data[:, ::2] *= 10
+data += 37
+
+health_data = pd.DataFrame(data, index=index, columns=columns)
+health_data
+
+# %%
+health_data["Guido"]
+
+# %%
+pop
+
+# %%
+pop["California", 2000]
+
+# %%
+pop["California", 2000]
+
+# %%
+pop["California"]
+
+# %%
+pop.loc["California":"New York"]
+
+# %%
+pop[:, 2000]
+
+# %%
+pop[pop > 2200000]
+
+# %%
+pop[["California", "Texas"]]
