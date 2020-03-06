@@ -527,3 +527,212 @@ pop[pop > 2200000]
 
 # %%
 pop[["California", "Texas"]]
+
+# %%
+health_data
+
+# %%
+health_data["Guido", "HR"]
+
+# %%
+health_data.iloc[:2, :2]
+
+# %%
+health_data.loc[:, ("Bob", "HR")]
+
+# %%
+
+# health_data.loc[(:, 1), (:, 'HR')]
+# %%
+idx = pd.IndexSlice
+health_data.loc[idx[:, 1], idx[:, "HR"]]
+
+# %%
+index = pd.MultiIndex.from_product([["a", "c", "b"], [1, 2]])
+data = pd.Series(np.random.rand(6), index=index)
+data.index.names = ["char", "int"]
+data
+
+# %%
+try:
+    data["a":"b"]
+except KeyError as e:
+    print(type(e))
+    print(e)
+
+# %%
+data = data.sort_index()
+data
+
+# %%
+data["a":"b"]
+
+# %%
+pop.unstack(level=0)
+
+
+# %%
+pop.unstack(level=1)
+
+# %%
+pop.unstack(level=1)
+
+# %%
+pop.unstack().stack()
+
+# %%
+pop_flat = pop.reset_index(name="population")
+pop_flat
+
+# %%
+pop_flat.set_index(["state", "year"])
+
+# %%
+health_data
+
+# %%
+data_mean = health_data.mean(level="year")
+data_mean
+
+# %%
+data_mean.mean(axis=1, level="type")
+
+# %%
+
+
+def make_df(cols, ind):
+    """Quickly make a DF"""
+    data = {c: [str(c) + str(i) for i in ind] for c in cols}
+    return pd.DataFrame(data, ind)
+
+
+make_df("ABC", range(3))
+
+# %%
+x = [1, 2, 3]
+y = [4, 5, 6]
+z = [7, 8, 9]
+np.concatenate([x, y, z])
+
+# %%
+x = [[1, 2], [3, 4]]
+np.concatenate([x, x], axis=1)
+
+# %%
+ser1 = pd.Series(["A", "B", "C"], index=[1, 2, 3])
+ser2 = pd.Series(["D", "E", "F"], index=[4, 5, 6])
+pd.concat([ser1, ser2])
+
+# %%
+df1 = make_df("AB", [1, 2])
+df2 = make_df("AB", [3, 4])
+print(df1)
+print(df2)
+print(pd.concat([df1, df2]))
+
+# %%
+df3 = make_df("AB", [0, 1])
+df4 = make_df("CD", [0, 1])
+print(df3)
+print(df4)
+print(pd.concat([df3, df4], axis=1))
+
+# %%
+x = make_df("AB", [0, 1])
+y = make_df("AB", [2, 3])
+y.index = x.index
+print(x)
+print(y)
+print(pd.concat([x, y]))
+
+# %%
+try:
+    pd.concat([x, y], verify_integrity=True)
+except ValueError as e:
+    print("ValueError", e)
+
+
+# %%
+print(x)
+print(y)
+print(pd.concat([x, y], ignore_index=True))
+
+# %%
+print(pd.concat([x, y], keys=["x", "y"]))
+
+# %%
+df5 = make_df("ABC", [1, 2])
+df6 = make_df("BCD", [3, 4])
+print(df5)
+print(df6)
+print(pd.concat([df5, df6]))
+
+# %%
+print(pd.concat([df5, df6], join="inner"))
+
+# %%
+# print(pd.concat([df5, df6], join_axes=[df5.columns]))
+
+# %%
+print(df1.append(df2))
+
+
+# %%
+df1 = pd.DataFrame(
+    {
+        "employee": ["Bob", "Jake", "Lisa", "Sue"],
+        "group": ["Accounting", "Engineering", "Engineering", "HR"],
+    }
+)
+df2 = pd.DataFrame(
+    {"employee": ["Lisa", "Bob", "Jake", "Sue"], "hire_date": [2004, 2008, 2012, 2014]}
+)
+print(df1)
+print(df2)
+
+# %%
+df3 = pd.merge(df1, df2)
+df3
+
+# %%
+df4 = pd.DataFrame(
+    {
+        "group": ["Accounting", "Engineering", "HR"],
+        "supervisor": ["Carly", "Guido", "Steve"],
+    }
+)
+print(pd.merge(df3, df4))
+
+# %%
+df5 = pd.DataFrame(
+    {
+        "group": ["Accounting", "Accounting", "Engineering", "Engineering", "HR", "HR"],
+        "skills": [
+            "math",
+            "spreadsheets",
+            "coding",
+            "linux",
+            "spreadsheets",
+            "organization",
+        ],
+    }
+)
+print(df1)
+print(df5)
+print(pd.merge(df1, df5))
+
+# %%
+print(pd.merge(df1, df2, on="employee"))
+
+# %%
+df3 = pd.DataFrame(
+    {"name": ["Bob", "Jake", "Lisa", "Sue"], "salary": [70000, 80000, 120000, 90000]}
+)
+print(df1)
+print(df2)
+print(pd.merge(df1, df3, left_on="employee", right_on="name"))
+
+# %%
+pd.merge(df1, df3, left_on="employee", right_on="name").drop("name", axis=1)
+
+# %%
