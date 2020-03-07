@@ -1,6 +1,7 @@
 # %%
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 import seaborn as sns
 
 # %%
@@ -962,3 +963,47 @@ planets.groupby(["method", decade])["number"].sum().unstack().fillna(0)
 titanic = sns.load_dataset("titanic")
 
 # %%
+titanic.head()
+
+# %%
+titanic.groupby("sex")[["survived"]].mean()
+
+# %%
+titanic.groupby(["sex", "class"])["survived"].aggregate("mean").unstack()
+
+# %%
+titanic.pivot_table("survived", index="sex", columns="class")
+
+# %%
+age = pd.cut(titanic["age"], [0, 18, 80])
+titanic.pivot_table("survived", ["sex", age], "class")
+
+# %%
+fare = pd.qcut(titanic["fare"], 2)
+titanic.pivot_table("survived", ["sex", age], [fare, "class"])
+
+# %%
+titanic.pivot_table(
+    index="sex", columns="class", aggfunc={"survived": sum, "fare": "mean"}
+)
+
+# %%
+titanic.pivot_table("survived", index="sex", columns="class", margins=True)
+
+# %%
+births = pd.read_csv("data/births.csv")
+births.head()
+
+# %%
+births["decade"] = 10 * (births["year"] // 10)
+births.pivot_table("births", index="decade", columns="gender", aggfunc="sum")
+
+# %%
+sns.set()
+births.pivot_table("births", index="year", columns="gender", aggfunc="sum").plot()
+plt.ylabel("total births per year")
+
+# %%
+quartiles = np.percentile(births["births"], [25, 50, 75])
+mu = quartiles[1]
+sig = 0.74 * (quartiles[2] - quartiles[0])
