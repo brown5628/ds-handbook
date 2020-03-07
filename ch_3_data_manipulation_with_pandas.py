@@ -1,6 +1,7 @@
 # %%
 import numpy as np
 import pandas as pd
+import seaborn as sns
 
 # %%
 data = pd.Series([0.25, 0.5, 0.75, 1.0])
@@ -734,5 +735,110 @@ print(pd.merge(df1, df3, left_on="employee", right_on="name"))
 
 # %%
 pd.merge(df1, df3, left_on="employee", right_on="name").drop("name", axis=1)
+
+# %%
+df1a = df1.set_index("employee")
+df2a = df2.set_index("employee")
+print(df1a)
+print(df2a)
+
+# %%
+print(pd.merge(df1a, df2a, left_index=True, right_index=True))
+
+# %%
+print(df1a.join(df2a))
+
+# %%
+print(pd.merge(df1a, df3, left_index=True, right_on="name"))
+
+# %%
+df6 = pd.DataFrame(
+    {"name": ["Peter", "Paul", "Mary"], "food": ["fish", "beans", "bread"]},
+    columns=["name", "food"],
+)
+df7 = pd.DataFrame(
+    {"name": ["Mary", "Jospeh"], "drink": ["wine", "beer"]}, columns=["name", "drink"]
+)
+print(pd.merge(df6, df7))
+
+# %%
+pd.merge(df6, df7, how="inner")
+
+# %%
+print(pd.merge(df6, df7, how="outer"))
+
+# %%
+print(pd.merge(df6, df7, how="left"))
+
+# %%
+df8 = pd.DataFrame({"name": ["Bob", "Jake", "Lisa", "Sue"], "rank": [1, 2, 3, 4]})
+df9 = pd.DataFrame({"name": ["Bob", "Jake", "Lisa", "Sue"], "rank": [3, 1, 4, 2]})
+print(pd.merge(df8, df9, on="name"))
+
+# %%
+print(pd.merge(df8, df9, on="name", suffixes=["_L", "_R"]))
+
+# %%
+pop = pd.read_csv("data/state-population.csv")
+areas = pd.read_csv("data/state-areas.csv")
+abbrevs = pd.read_csv("data/state-abbrevs.csv")
+
+# %%
+merged = pd.merge(
+    pop, abbrevs, how="outer", left_on="state/region", right_on="abbreviation"
+)
+merged = merged.drop("abbreviation", 1)
+merged.head()
+
+# %%
+merged.isnull().any()
+
+# %%
+merged[merged["population"].isnull()].head()
+
+# %%
+merged.loc[merged["state"].isnull(), "state/region"].unique()
+
+# %%
+merged.loc[merged["state/region"] == "PR", "state"] = "Puerto Rico"
+merged.loc[merged["state/region"] == "USA", "state"] = "United States"
+merged.isnull().any()
+
+# %%
+final = pd.merge(merged, areas, on="state", how="left")
+final.head()
+
+# %%
+final.isnull().any()
+
+# %%
+final["state"][final["area (sq. mi)"].isnull()].unique()
+
+
+# %%
+final.dropna(inplace=True)
+final.head()
+
+# %%
+data2010 = final.query("year == 2010 & ages == 'total'")
+data2010.head()
+# %%
+data2010.set_index("state", inplace=True)
+density = data2010["population"] / data2010["area (sq. mi)"]
+
+
+# %%
+density.sort_values(ascending=False, inplace=True)
+density.head()
+
+# %%
+density.tail()
+
+# %%
+planets = sns.load_dataset("planets")
+planets.shape
+
+# %%
+planets.head()
 
 # %%
