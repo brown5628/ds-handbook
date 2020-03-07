@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from datetime import datetime
+from dateutil import parser
 
 # %%
 data = pd.Series([0.25, 0.5, 0.75, 1.0])
@@ -1007,3 +1009,122 @@ plt.ylabel("total births per year")
 quartiles = np.percentile(births["births"], [25, 50, 75])
 mu = quartiles[1]
 sig = 0.74 * (quartiles[2] - quartiles[0])
+
+# %%
+births = births.query("(births > @mu -5 * @sig) & (births < @mu + 5 * @sig)")
+
+# %%
+births["day"] = births["day"].astype(int)
+
+# %%
+births.index = pd.to_datetime(
+    10000 * births.year + 100 * births.month + births.day, format="%Y%m%d"
+)
+births["dayofweek"] = births.index.dayofweek
+
+# %%
+births.pivot_table("births", index="dayofweek", columns="decade", aggfunc="mean").plot()
+plt.gca().set_xticklabels(["Mon", "Tues", "Wed", "Thurs", "Fri", "Sat", "Sun"])
+plt.ylabel("mean births by day")
+
+# %%
+births_by_date = births.pivot_table("births", [births.index.month, births.index.day])
+births_by_date.head()
+
+# %%
+births_by_date.index = [
+    pd.datetime(2012, month, day) for (month, day) in births_by_date.index
+]
+births_by_date.head()
+
+# %%
+fig, ax = plt.subplots(figsize=(12, 4))
+births_by_date.plot(ax=ax)
+
+# %%
+x = np.array([2, 3, 5, 7, 11, 13])
+x * 2
+
+# %%
+data = ["peter", "Paul", "MARY", "gUIDO"]
+[s.capitalize() for s in data]
+
+# %%
+data = ["peter", "Paul", None, "MARY", "gUIDO"]
+# %%
+names = pd.Series(data)
+
+# %%
+names.str.capitalize()
+
+# %%
+monte = pd.Series(
+    [
+        "Graham Chapman",
+        "John Cleese",
+        "Terry Gilliam",
+        "Eric Idle",
+        "Terry Jones",
+        "Michael Palin",
+    ]
+)
+
+
+# %%
+monte.str.lower()
+
+# %%
+monte.str.len()
+
+# %%
+monte.str.startswith("T")
+
+# %%
+monte.str.split()
+
+# %%
+monte.str.extract("([A-Za-z]+)")
+
+# %%
+monte.str.findall(r"^[^AEIOU].*[^aeiou]$")
+
+# %%
+monte.str[0:3]
+
+# %%
+monte.str.split().str.get(-1)
+
+# %%
+full_monte = pd.DataFrame(
+    {"name": monte, "info": ["B|C|D", "B|D", "A|C", "B|D", "B|C", "B|C|D"]}
+)
+full_monte
+
+# %%
+full_monte["info"].str.get_dummies("|")
+
+# %%
+# Skipped recipie section- data file does not exist
+
+# %%
+datetime(year=2015, month=7, day=4)
+
+# %%
+date = parser.parse("4th of July, 2015")
+date
+
+# %%
+date.strftime("%A")
+
+# %%
+date = np.array("2015-07-04", dtype=np.datetime64)
+date
+
+# %%
+date + np.arange(12)
+
+# %%
+np.datetime64("2015-07-04")
+
+# %%
+np.datetime("2015-07-04 12:00")
