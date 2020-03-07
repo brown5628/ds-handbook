@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
 from dateutil import parser
+from pandas_datareader import data
 
 # %%
 data = pd.Series([0.25, 0.5, 0.75, 1.0])
@@ -1128,3 +1129,99 @@ np.datetime64("2015-07-04")
 
 # %%
 np.datetime("2015-07-04 12:00")
+
+# %%
+np.datetime64("2015-07-04 12:59:59.50", "ns")
+
+# %%
+date = pd.to_datetime("4th of July, 2015")
+date
+
+# %%
+date.strftime("%A")
+
+# %%
+date + pd.to_timedelta(np.arange(12), "D")
+
+# %%
+index = pd.DatetimeIndex(["2014-07-04", "2014-08-04", "2015-07-04", "2015-08-04"])
+data = pd.Series([0, 1, 2, 3], index=index)
+data
+
+
+# %%
+data["2014-07-04":"2015-07-04"]
+
+# %%
+data["2015"]
+
+# %%
+dates = pd.to_datetime(
+    [datetime(2015, 7, 3), "4th of July, 2015", "2015-Jul-6", "07-07-2015", "20150708"]
+)
+dates
+
+# %%
+dates.to_period("D")
+
+# %%
+dates - dates[0]
+
+# %%
+pd.date_range("2015-07-03", "2015-07-10")
+
+# %%
+pd.date_range("2015-07-03", periods=8)
+
+# %%
+pd.date_range("2015-07-03", periods=8, freq="H")
+
+# %%
+pd.period_range("2015-07", periods=8, freq="M")
+
+# %%
+pd.timedelta_range(0, periods=10, freq="H")
+
+# %%
+pd.timedelta_range(0, periods=9, freq="2H30T")
+
+# %%
+goog = data.DataReader("GOOG", start="2004", end="2016", data_source="stooq")
+goog.head()
+
+# %%
+goog = goog["Close"]
+
+# %%
+goog.plot()
+
+# %%
+
+goog.plot(alpha=0.5, style="-")
+goog.resample("BA").mean().plot(style=":")
+goog.asfreq("BA").plot(style="--")
+plt.legend(["input", "resample", "asfreq"], loc="upper left")
+
+# %%
+
+fig, ax = plt.subplots(2, sharex=True)
+data = goog.iloc[:10]
+
+data.asfreq("D").plot(ax=ax[0], marker="o")
+
+data.asfreq("D", method="bfill").plot(ax=ax[1], style="-o")
+data.asfreq("D", method="ffill").plot(ax=ax[1], style="--o")
+ax[1].legend(["back-fill", "forward-fill"])
+
+# %%
+# Google finance deprecated, moving on
+
+# %%
+databike = pd.read_csv(
+    "https://data.seattle.gov/api/views/65db-xm6k/rows.csv?accessType=DOWNLOAD",
+    index_col="Date",
+    parse_dates=True,
+)
+
+databike.head()
+# %%
