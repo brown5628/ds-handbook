@@ -3,9 +3,9 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pandas_datareader as pdr
 from datetime import datetime
 from dateutil import parser
-from pandas_datareader import data
 
 # %%
 data = pd.Series([0.25, 0.5, 0.75, 1.0])
@@ -1186,7 +1186,7 @@ pd.timedelta_range(0, periods=10, freq="H")
 pd.timedelta_range(0, periods=9, freq="2H30T")
 
 # %%
-goog = data.DataReader("GOOG", start="2004", end="2016", data_source="stooq")
+goog = pdr.DataReader("GOOG", start="2004", end="2016", data_source="stooq")
 goog.head()
 
 # %%
@@ -1217,11 +1217,145 @@ ax[1].legend(["back-fill", "forward-fill"])
 # Google finance deprecated, moving on
 
 # %%
-databike = pd.read_csv(
+data = pd.read_csv(
     "https://data.seattle.gov/api/views/65db-xm6k/rows.csv?accessType=DOWNLOAD",
     index_col="Date",
     parse_dates=True,
 )
 
-databike.head()
+data.head()
 # %%
+data.columns = ["Total", "West", "East"]
+# data['Total'] = data.eval('West + East')
+
+# %%
+data.dropna().describe()
+
+# %%
+data.plot()
+plt.ylabel("Hourly Bicycle Count")
+
+# %%
+weekly = data.resample("W").sum()
+weekly.plot(style=[":", "--", "-"])
+plt.ylabel("Weekly bike count")
+
+# %%
+daily = data.resample("D").sum()
+daily.rolling(30, center=True).sum().plot(style=[":", "--", "-"])
+plt.ylabel("mean hourly count")
+
+# %%
+daily.rolling(50, center=True, win_type="gaussian").sum(std=10).plot(
+    style=[":", "--", "-"]
+)
+
+# %%
+by_time = data.groupby(data.index.time).mean()
+hourly_ticks = 4 * 60 * 60 * np.arange(6)
+by_time.plot(xticks=hourly_ticks, style=[":", "--", "-"])
+# %%
+by_weekday = data.groupby(data.index.dayofweek).mean()
+by_weekday.index = ["Mon", "Tues", "Wed", "Thurs", "Fri", "Sat", "Sun"]
+by_weekday.plot(style=[":", "--", "-"])
+
+# %%
+weekend = np.where(data.index.weekday < 5, "Weekday", "Weekend")
+by_time = data.groupby([weekend, data.index.time]).mean()
+
+# %%
+fig, ax = plt.subplots(1, 2, figsize=(14, 5))
+by_time.ix["Weekday"].plot(
+    ax=ax[0], title="Weekdays", xticks=hourly_ticks, style=[":", "--", "-"]
+)
+by_time.ix["Weekend"].plot(
+    ax=ax[1], title="Weekends", xticks=hourly_ticks, style=[":", "--", "-"]
+)
+
+# %%
+nrows, ncols = 100000, 100
+rng = np.random.RandomState(42)
+df1, df2, df3, df4 = (pd.DataFrame(rng.rand(nrows, ncols)) for i in range(4))
+
+# %%
+pd.eval("df1 + df2 + df3 + df4")
+
+# %%
+np.allclose(df1 + df2 + df3 + df4, pd.eval("df1 + df2 + df3 + df4"))
+
+# %%
+df1, df2, df3, df4, df5 = (
+    pd.DataFrame(rng.randint(0, 1000, (100, 3))) for i in range(5)
+)
+
+# %%
+result1 = -df1 * df2 / (df3 + df4) - df5
+result2 = pd.eval("-df1 * df2 / (df3 + df4) - df5")
+np.allclose(result1, result2)
+
+# %%
+result1 = (df1 < df2) & (df2 <= df3) & (df3 != df4)
+result2 = pd.eval("df1 < df2 <= df3 != df4")
+np.allclose(result1, result2)
+
+# %%
+result1 = (df1 < 0.5) & (df2 < 0.5) | (df3 < df4)
+result2 = pd.eval("(df1 <.5) & (df2 < .5) | (df3 < df4)")
+
+# %%
+result3 = pd.eval("(df1 < .5) and (df2 < .5) or (df3 < df4)")
+np.allclose(result1, result3)
+
+# %%
+df = pd.DataFrame(rng.rand(1000, 3), columns=["A", "B", "C"])
+df.head()
+
+# %%
+result1 = (df["A"] + df["B"]) / (df["C"] - 1)
+result2 = pd.eval("(df.A + df.B) / (df.C - 1)")
+np.allclose(result1, result2)
+
+# %%
+result3 = df.eval("(A + B) / (C - 1)")
+np.allclose(result1, result3)
+
+# %%
+df.eval("D = (A + B) / C", inplace=True)
+df.head()
+
+# %%
+df.eval("D = (A - B) / C", inplace=True)
+df.head()
+
+# %%
+column_mean = df.mean(1)
+result1 = df["A"] + column_mean
+result2 = df.eval("A + @column_mean")
+np.allclose(result1, result2)
+
+# %%
+result1 = df[(df.A < 0.5) & (df.B < 0.5)]
+result2 = pd.eval("df[(df.A < .5) & (df.B < .5)]")
+np.allclose(result1, result2)
+
+# %%
+result2 = df.query("A < .5 and B < .5")
+np.allclose(result1, result2)
+
+# %%
+Cmean = df["C"].mean()
+result1 = df[(df.A < Cmean) & (df.B < Cmean)]
+result2 = df.query("A @Cmean and B < @Cmean")
+np.allclose(result1, result2)
+
+# %%
+x = df[(df.A < 0.5) & (df.B < 0.5)]
+
+# %%
+tmp1 = df.A < 0.5
+tmp2 = df.B < 0.5
+tmp3 = tmp1 & tmp2
+x = df[tmp3]
+
+# %%
+df.values.nbytes
