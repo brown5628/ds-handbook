@@ -36,7 +36,13 @@ from sklearn.linear_model import Lasso
 # from scipy import stats
 from sklearn.svm import SVC
 from sklearn.datasets.samples_generator import make_circles
-# from mpl_toolkits import mplot3d
+from mpl_toolkits import mplot3d
+from sklearn.datasets import fetch_lfw_people
+from sklearn.metrics import classification_report
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import BaggingClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestRegressor
 
 # %%
 iris = sns.load_dataset("iris")
@@ -779,3 +785,86 @@ plt.scatter(X[:, 0], X[:, 1], c=y, s=50, cmap="autumn")
 
 # %%
 X, y = make_blobs(n_samples=100, centers=2, random_state=0, cluster_std=0.8)
+
+fig, ax = plt.subplots(1, 2, figsize=(16, 6))
+fig.subplots_adjust(left=0.0625, right=0.95, wspace=0.1)
+
+for axi, C in zip(ax, [10.0, 0.1]):
+    model = SVC(kernel="linear", C=C).fit(X, y)
+    axi.scatter(X[:, 0], X[:, 1], c=y, s=50, cmap="autumn")
+    plot_svc_decision_function(model, axi)
+    axi.scatter(
+        model.support_vectors_[:, 0],
+        model.support_vectors_[:, 1],
+        s=300,
+        lw=1,
+        facecolors="none",
+    )
+    axi.set_title("C={0:.1f}".format(C), size=14)
+
+# %%
+faces = fetch_lfw_people(min_faces_per_person=60)
+print(faces.target_names)
+print(faces.images.shape)
+
+# %%
+fig, ax = plt.subplots(3, 5)
+for i, axi in enumerate(ax.flat):
+    axi.imshow(faces.images[i], cmap="bone")
+    axi.set(xticks=[], yticks=[], xlabel=faces.target_names[faces.target[i]])
+
+# %%
+pca = PCA(n_components=150, whiten=True, random_state=42)
+svc = SVC(kernel="rbf")
+model = make_pipeline(pca, svc)
+
+# %%
+Xtrain, Xtest, ytrain, ytest = train_test_split(
+    faces.data, faces.target, random_state=42
+)
+
+# %%
+param_grid = {"svc__C": [1, 5, 10, 50], "svc__gamma": [0.0001, 0.0005, 0.001, 0.005]}
+grid = GridSearchCV(model, param_grid)
+
+grid.fit(Xtrain, ytrain)
+print(grid.best_params_)
+
+# %%
+model = grid.best_estimator_
+yfit = model.predict(Xtest)
+
+
+# %%
+fig, ax = plt.subplots(4, 6)
+for i, axi in enumerate(ax.flat):
+    axi.imshow(Xtest[i].reshape(62, 47), cmap="bone")
+    axi.set(xticks=[], yticks=[])
+    axi.set_ylabel(
+        faces.target_names[yfit[i]].split()[-1],
+        color="black" if yfit[i] == ytest[i] else "red",
+    )
+
+fig.suptitle("Predicted Names; Incorrect Labels in Red", size=14)
+# %%
+print(classification_report(ytest, yfit, target_names=faces.target_names))
+
+# %%
+mat = confusion_matrix(ytest, yfit)
+sns.heatmap(
+    mat.T,
+    square=True,
+    annot=True,
+    fmt="d",
+    cbar=False,
+    xticklabels=faces.target_names,
+    yticklabels=faces.target_names,
+)
+plt.xlabel("true label")
+plt.ylabel("predicted label")
+
+# %%
+X, y = make_blobs(n_samples=300, centers=4, random_state=0, cluster_std=1)
+plt.scatter(X[:, 0], X[:, 1], c=y, s=50, cmap="autumn")
+
+# %%
