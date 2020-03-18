@@ -44,6 +44,11 @@ from sklearn.ensemble import BaggingClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
 from matplotlib.image import imread
+from sklearn.metrics import pairwise_distances
+from sklearn.manifold import MDS
+from sklearn.manifold import LocallyLinearEmbedding
+from matplotlib import offsetbox
+from sklearn.datasets import fetch_openml
 
 # %%
 iris = sns.load_dataset("iris")
@@ -1135,3 +1140,172 @@ X = make_hello(1000)
 colorize = dict(c=X[:, 0], cmap=plt.cm.get_cmap("rainbow", 5))
 plt.scatter(X[:, 0], X[:, 1], **colorize)
 plt.axis("equal")
+
+# %%
+
+
+def rotate(X, angle):
+    theta = np.deg2rad(angle)
+    R = [[np.cos(theta), np.sin(theta)], [-np.sin(theta), np.cos(theta)]]
+    return np.dot(X, R)
+
+
+X2 = rotate(X, 20) + 5
+plt.scatter(X2[:, 0], X2[:, 1], **colorize)
+plt.axis("equal")
+
+# %%
+D = pairwise_distances(X)
+D.shape
+
+# %%
+plt.imshow(D, zorder=2, cmap="Blues", interpolation="nearest")
+plt.colorbar()
+
+# %%
+D2 = pairwise_distances(X2)
+np.allclose(D, D2)
+
+# %%
+model = MDS(n_components=2, dissimilarity="precomputed", random_state=1)
+out = model.fit_transform(D)
+plt.scatter(out[:, 0], out[:, 1], **colorize)
+plt.axis("equal")
+
+# %%
+
+
+def random_projection(X, dimension=3, rseed=42):
+    assert dimension >= X.shape[1]
+    rng = np.random.RandomState(rseed)
+    C = rng.randn(dimension, dimension)
+    e, V = np.linalg.eigh(np.dot(C, C.T))
+    return np.dot(X, V[: X.shape[1]])
+
+
+X3 = random_projection(X, 3)
+X3.shape
+
+# %%
+ax = plt.axes(projection="3d")
+ax.scatter3D(X3[:, 0], X3[:, 1], X3[:, 2], **colorize)
+ax.view_init(azim=70, elev=50)
+
+# %%
+model = MDS(n_components=2, random_state=1)
+out3 = model.fit_transform(X3)
+plt.scatter(out3[:, 0], out3[:, 1], **colorize)
+plt.axis("equal")
+
+# %%
+
+
+def make_hello_s_curve(X):
+    t = (X[:, 0] - 2) * 0.75 * np.pi
+    x = np.sin(t)
+    y = X[:, 1]
+    z = np.sign(t) * (np.cos(t) - 1)
+    return np.vstack((x, y, z)).T
+
+
+XS = make_hello_s_curve(X)
+
+# %%
+ax = plt.axes(projection="3d")
+ax.scatter3D(XS[:, 0], XS[:, 1], XS[:, 2], **colorize)
+
+# %%
+model = MDS(n_components=2, random_state=2)
+outS = model.fit_transform(XS)
+plt.scatter(outS[:, 0], outS[:, 1], **colorize)
+plt.axis("equal")
+
+# %%
+model = LocallyLinearEmbedding(
+    n_neighbors=100, n_components=2, method="modified", eigen_solver="dense"
+)
+out = model.fit_transform(XS)
+
+fig, ax = plt.subplots()
+ax.scatter(out[:, 0], out[:, 1], **colorize)
+ax.set_ylim(0.15, -0.15)
+
+# %%
+faces = fetch_lfw_people(min_faces_per_person=30)
+faces.data.shape
+
+# %%
+fig, ax = plt.subplots(4, 8, subplot_kw=dict(xticks=[], yticks=[]))
+for i, axi in enumerate(ax.flat):
+    axi.imshow(faces.images[i], cmap="gray")
+
+# %%
+model = PCA(100, svd_solver="randomized").fit(faces.data)
+plt.plot(np.cumsum(model.explained_variance_ratio_))
+plt.xlabel("n components")
+plt.ylabel("cumulative variance")
+
+# %%
+model = Isomap(n_components=2)
+proj = model.fit_transform(faces.data)
+proj.shape
+
+# %%
+
+
+def plot_components(data, model, images=None, ax=None, thumb_frac=0.5, cmap="gray"):
+    ax = ax or plt.gca()
+
+    proj = model.fit_transform(data)
+    ax.plot(proj[:, 0], proj[:, 1], ".k")
+
+    if images is not None:
+        min_dist_2 = (thumb_frac * max(proj.max(0) - proj.min(0))) ** 2
+        shown_images = np.array([2 * proj.max(0)])
+        for i in range(data.shape[0]):
+            dist = np.sum((proj[i] - shown_images) ** 2, 1)
+            if np.min(dist) < min_dist_2:
+                continue
+            shown_images = np.vstack([shown_images, proj[i]])
+            imagebox = offsetbox.AnnotationBbox(
+                offsetbox.OffsetImage(images[i], cmap=cmap), proj[i]
+            )
+            ax.add_artist(imagebox)
+
+
+# %%
+fig, ax = plt.subplots(figsize=(10, 10))
+plot_components(
+    faces.data, model=Isomap(n_components=2), images=faces.images[:, ::2, ::2]
+)
+
+# %%
+mnist = fetch_openml("mnist_784")
+mnist.data.shape
+
+# %%
+fig, ax = plt.subplots(6, 8, subplot_kw=dict(xticks=[], yticks=[]))
+for i, axi in enumerate(ax.flat):
+    axi.imshow(mnist.data[1250 * i].reshape(28, 28), cmap="gray_r")
+
+# %%
+data = mnist.data[::30]
+target = mnist.target[::30]
+
+model = Isomap(n_components=2)
+proj = model.fit_transform(data)
+plt.scatter(proj[:, 0], proj[:, 1])
+
+# %%
+data = mnist.data[mnist.target == 1][::4]
+
+fig, ax = plt.subplots(figsize=(10, 10))
+model = Isomap(n_neighbors=5, n_components=2, eigen_solver="dense")
+plot_components(
+    data,
+    model,
+    images=data.reshape((-1, 28, 28)),
+    ax=ax,
+    thumb_frac=0.05,
+    cmap="gray_r",
+)
