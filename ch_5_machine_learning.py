@@ -32,8 +32,6 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.linear_model import Ridge
 from sklearn.linear_model import Lasso
-
-# from scipy import stats
 from sklearn.svm import SVC
 from sklearn.datasets.samples_generator import make_circles
 from mpl_toolkits import mplot3d
@@ -53,6 +51,10 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import pairwise_distances_argmin
 from sklearn.datasets import make_moons
 from sklearn.cluster import SpectralClustering
+from scipy.stats import mode
+from sklearn.manifold import TSNE
+from sklearn.datasets import load_sample_image
+from sklearn.cluster import MiniBatchKMeans
 
 # %%
 iris = sns.load_dataset("iris")
@@ -1361,7 +1363,7 @@ labels = KMeans(6, random_state=0).fit_predict(X)
 plt.scatter(X[:, 0], X[:, 1], c=labels, s=50, cmap="viridis")
 
 # %%
-X, y = make_moons(200, noise=0.5, random_state=0)
+X, y = make_moons(200, noise=0.05, random_state=0)
 
 # %%
 labels = KMeans(2, random_state=0).fit_predict(X)
@@ -1382,5 +1384,103 @@ digits.data.shape
 kmeans = KMeans(n_clusters=10, random_state=0)
 clusters = kmeans.fit_predict(digits.data)
 kmeans.cluster_centers_.shape
+
+# %%
+fig, ax = plt.subplots(2, 5, figsize=(8, 3))
+centers = kmeans.cluster_centers_.reshape(10, 8, 8)
+for axi, center in zip(ax.flat, centers):
+    axi.set(xticks=[], yticks=[])
+    axi.imshow(center, interpolation="nearest", cmap=plt.cm.binary)
+
+# %%
+labels = np.zeros_like(clusters)
+for i in range(10):
+    mask = clusters == i
+    labels[mask] = mode(digits.target[mask])[0]
+
+# %%
+accuracy_score(digits.target, labels)
+
+# %%
+mat = confusion_matrix(digits.target, labels)
+sns.heatmap(
+    mat.T,
+    square=True,
+    annot=True,
+    fmt="d",
+    cbar=False,
+    xticklabels=digits.target_names,
+    yticklabels=digits.target_names,
+)
+plt.xlabel("true label")
+plt.ylabel("predicted label")
+
+# %%
+tsne = TSNE(n_components=2, init="pca", random_state=0)
+digits_proj = tsne.fit_transform(digits.data)
+
+kmeans = KMeans(n_clusters=10, random_state=0)
+clusters = kmeans.fit_predict(digits_proj)
+
+labels = np.zeros_like(clusters)
+for i in range(10):
+    mask = clusters == i
+    labels[mask] = mode(digits.target[mask])[0]
+
+accuracy_score(digits.target, labels)
+
+# %%
+china = load_sample_image("china.jpg")
+ax = plt.axes(xticks=[], yticks=[])
+ax.imshow(china)
+
+# %%
+china.shape
+
+# %%
+data = china / 255.0
+data = data.reshape(427 * 640, 3)
+data.shape
+
+# %%
+
+
+def plot_pixels(data, title, colors=None, N=10000):
+    if colors is None:
+        colors = data
+
+    rng = np.random.RandomState(0)
+    i = rng.permutation(data.shape[0])[:N]
+    colors = colors[i]
+    R, G, B = data[i].T
+    fig, ax = plt.subplots(1, 2, figsize=(16, 6))
+    ax[0].scatter(R, G, color=colors, marker=".")
+    ax[0].set(xlabel="Red", ylabel="Green", xlim=(0, 1), ylim=(0, 1))
+
+    ax[1].scatter(R, B, color=colors, marker=".")
+    ax[1].set(xlabel="Red", ylabel="Blue", xlim=(0, 1), ylim=(0, 1))
+
+    fig.suptitle(title, size=20)
+
+
+# %%
+plot_pixels(data, title="Input color space: 16 million possible colors")
+
+# %%
+kmeans = MiniBatchKMeans(16)
+kmeans.fit(data)
+new_colors = kmeans.cluster_centers_[kmeans.predict(data)]
+
+plot_pixels(data, colors=new_colors, title="Reduced color space: 16 colors")
+
+# %%
+china_recolored = new_colors.reshape(china.shape)
+
+fig, ax = plt.subplots(1, 2, figsize=(16, 6), subplot_kw=dict(xticks=[], yticks=[]))
+fig.subplots_adjust(wspace=0.05)
+ax[0].imshow(china)
+ax[0].set_title("Original Image", size=16)
+ax[1].imshow(china_recolored)
+ax[1].set_title("16-color Image", size=16)
 
 # %%
