@@ -1836,7 +1836,7 @@ def extract_patches(img, N, scale=1.0, patch_size=positive_patches[0].shape):
     )
     patches = extractor.transform(img[np.newaxis])
     if scale != 1:
-        patches = np.array([transfomr.resize(patch, patch_size) for patch in patches])
+        patches = np.array([transfom.resize(patch, patch_size) for patch in patches])
 
     return patches
 
