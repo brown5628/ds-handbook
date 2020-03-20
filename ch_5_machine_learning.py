@@ -3,6 +3,7 @@ import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import skimage.data
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
@@ -59,9 +60,13 @@ from scipy.spatial.distance import cdist
 from matplotlib.patches import Ellipse
 from scipy.stats import norm
 from sklearn.neighbors import KernelDensity
-from sklearn.datasets import fetch_species_distributions
-from mpl_toolkits import Basemap
-from sklearn.datasets.species_distributions import construct_grids
+#from sklearn.datasets import fetch_species_distributions
+# from mpl_toolkits import Basemap
+# from sklearn.datasets.species_distributions import construct_grids
+from sklearn.base import ClassifierMixin
+from skimage import data, color, feature
+from sklearn.feature_extraction.image import PatchExtractor
+from itertools import chain
 
 # %%
 iris = sns.load_dataset("iris")
@@ -1696,7 +1701,7 @@ bins = np.arange(-3, 8)
 ax.plot(x, np.full_like(x, -0.1), "|k", markeredgewidth=1)
 for count, edge in zip(*np.histogram(x, bins)):
     for i in range(count):
-        ax.add_patch(plt.Rectange((edge, i), 1, 1, alpha=0.5))
+        ax.add_patch(plt.Rectangle((edge, i), 1, 1, alpha=0.5))
 ax.set_xlim(-4, 8)
 ax.set_ylim(-0.2, 8)
 
@@ -1710,3 +1715,212 @@ plt.plot(x, np.full_like(x, -0.1), "|k", markeredgewidth=1)
 plt.axis([-4, 8, -0.2, 8])
 
 # %%
+x_d = np.linspace(-4, 8, 1000)
+density = sum(norm(xi).pdf(x_d) for xi in x)
+
+plt.fill_between(x_d, density, alpha=0.5)
+plt.plot(x, np.full_like(x, -0.1), "|k", markeredgewidth=1)
+
+plt.axis([-4, 8, -0.2, 5])
+
+
+# %%
+kde = KernelDensity(bandwidth=1.0, kernel="gaussian")
+kde.fit(x[:, None])
+
+logprob = kde.score_samples(x_d[:, None])
+
+plt.fill_between(x_d, np.exp(logprob), alpha=0.5)
+plt.plot(x, np.full_like(x, -0.01), "|k", markeredgewidth=1)
+plt.ylim(-0.02, 0.22)
+
+# %%
+bandwidths = 10 ** np.linspace(-1, 1, 100)
+grid = GridSearchCV(
+    KernelDensity(kernel="gaussian"), {"bandwidth": bandwidths}, cv=LeaveOneOut()
+)
+grid.fit(x[:, None])
+
+# %%
+grid.best_params_
+
+# %%
+# skip geomapping example- not high value & has installation requirements
+
+# %%
+
+
+class KDEClassifier(BaseEstimator, ClassifierMixin):
+    def __init__(self, bandwidth=1.0, kernel="gaussian"):
+        self.bandwidth = bandwidth
+        self.kernel = kernel
+
+    def fit(self, X, y):
+        self.classes_ = np.sort(np.unique(y))
+        training_sets = [X[y == yi] for yi in self.classes_]
+        self.models_ = [
+            KernelDensity(bandwidth=self.bandwidth, kernel=self.kernel).fit(Xi)
+            for Xi in training_sets
+        ]
+        self.logpriors_ = [np.log(Xi.shape[0] / X.shape[0]) for Xi in training_sets]
+        return self
+
+    def predict_proba(self, X):
+        logprobs = np.array([model.score_samples(X) for model in self.models_]).T
+        result = np.exp(logprobs + self.logpriors_)
+        return result / result.sum(1, keepdims=True)
+
+    def predict(self, X):
+        return self.classes_[np.argmax(self.predict_proba(X), 1)]
+
+
+# %%
+digits = load_digits()
+
+bandwidths = 10 ** np.linspace(0, 2, 100)
+grid = GridSearchCV(KDEClassifier(), {"bandwidth": bandwidths})
+grid.fit(digits.data, digits.target)
+
+# %%
+# scores = [val.mean_validation_score for val in grid.cv_results_]
+
+# %%
+# plt.semilogx(bandwidths, scores)
+# plt.xlabel('bandwidth')
+# plt.ylabel('accuracy')
+# plt.title('KDE Model Performance')
+print(grid.best_params_)
+print("accuracy=", grid.best_score_)
+
+# %%
+cross_val_score(GaussianNB(), digits.data, digits.target).mean()
+
+# %%
+image = color.rgb2gray(data.chelsea())
+hog_vec, hog_vis = feature.hog(image, visualise=True)
+
+fig, ax = plt.subplots(1, 2, figsize=(12, 6), subplot_kw=dict(xticks=[], yticks=[]))
+ax[0].imshow(image, cmap="gray")
+ax[0].set_title("input image")
+
+ax[1].imshow(hog_vis)
+ax[1].set_title("visualization of HOG features")
+
+# %%
+faces = fetch_lfw_people()
+positive_patches = faces.images
+postitive_patches.shape
+
+# %%
+imgs_to_use = [
+    "camera",
+    "text",
+    "coins",
+    "moon",
+    "page",
+    "clock",
+    "immunohistochemistry",
+    "chelsea",
+    "coffee",
+    "hubble_deep_field",
+]
+images = [color.rgb2gray(getattr(data, name)) for name in imgs_to_use]
+
+# %%
+
+
+def extract_patches(img, N, scale=1.0, patch_size=positive_patches[0].shape):
+    extracted_patch_size = tuple((scale * np.array(patch_size)).astype(int))
+    extractor = PatchExtractor(
+        patch_size=extracted_patch_size, max_patches=N, random_state=0
+    )
+    patches = extractor.transform(img[np.newaxis])
+    if scale != 1:
+        patches = np.array([transfomr.resize(patch, patch_size) for patch in patches])
+
+    return patches
+
+
+negative_patches = np.vstack(
+    [extract_patches(im, 1000, scale) for im in images for scale in [0.5, 1.0, 2.0]]
+)
+
+negative_patches.shape
+
+# %%
+fig, ax = plt.subplots(6, 10)
+for i, axi in enumerate(ax.flat):
+    axi.imshow(negative_patches[500 * i], cmap="gray")
+    axi.axis("off")
+
+# %%
+X_train = np.array(
+    [feature.hog(im) for im in chain(positive_patches, negative_patches)]
+)
+y_train = np.zeroes(X_train.shape[0])
+y_train[: positive_patches.shape[0]] = 1
+
+# %%
+X_train.shape
+
+# %%
+cross_val_score(GaussianNB(), X_train, ytrain)
+
+# %%
+grid = GridSearchCV(LinearSVC(), {"C": [1.0, 2.0, 4.0, 8.0]})
+grid.fit(X_train, y_train)
+grid.best_score_
+
+# %%
+grid.best_params_
+
+# %%
+model = grid.best_estimator_
+model.fit(X_train, y_train)
+
+# %%
+test_image = skimage.data.astronaut()
+test_image = skimage.color.rgb2gray(test_image)
+test_image = skimage.transform.rescale(test_image, 0.5)
+test_image = test_image[:160, 40:180]
+
+plt.imshow(test_image, cmap="gray")
+plt.axis("off")
+
+# %%
+
+
+def sliding_window(
+    img, patch_size=positive_patches[0].shape, istep=2, jstep=2, scale=1.0
+):
+    Ni, Nj = (int(scale * s) for s in patch_size)
+    for i in range(0, img.shape[0] - Ni, istep):
+        for j in range(0, img.shape[1] - Ni, jstep):
+            patch = img[i : i + Ni, j : j + Nj]
+            if scale != 1:
+                patch = transform.resize(patch, patch_size)
+            yield (i, j), patch
+
+
+indices, patches = zip(*sliding_window(test_image))
+patches_hog = np.array([feature.hog(patch) for patch in patches])
+patches_hog.shape
+
+# %%
+labels = model.predict(patches_hog)
+labels.sum()
+
+# %%
+fig, ax = plt.subplots()
+ax.imshow(test_image, cmap="gray")
+ax.axis("off")
+
+Ni, Nj = positive_patches[0].shape
+indices = np.array(indices)
+
+for i, j in indices[labels == 1]:
+    ax.add_patch(
+        plt.Rectangle(
+            (j, i), Nj, Ni, edgecolor="red", alpha=0.3, lw=2, facecolor="none"
+        )
+    )
